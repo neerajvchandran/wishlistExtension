@@ -11,6 +11,7 @@
   "scripts": {
     "dev:backend": "npm --workspace=@everything-wishlist/backend run dev",
     "dev:desktop": "npm --workspace=@everything-wishlist/desktop run dev",
+    "dev:electron": "npm --workspace=@everything-wishlist/desktop run dev:electron",
     "build": "npm --workspaces run build",
     "build:backend": "npm --workspace=@everything-wishlist/backend run build",
     "build:desktop": "npm --workspace=@everything-wishlist/desktop run build",
@@ -19,5 +20,9 @@
   },
   "devDependencies": {
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.5",
+    "@supabase/supabase-js": "^2.114.0"
   }
 }

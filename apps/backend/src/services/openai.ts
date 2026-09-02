@@ -6,59 +6,71 @@ import {
   IntentType
 } from '@everything-wishlist/shared';
 
-const apiKey = process.env.OPENAI_API_KEY;
-const model = process.env.OPENAI_MODEL || 'gpt-4o';
+// Environment variables with smart Ollama defaults
+const provider = process.env.AI_PROVIDER || (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('your_openai') ? 'openai' : 'ollama');
+const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1';
+const model = process.env.OLLAMA_MODEL || process.env.OPENAI_MODEL || (provider === 'ollama' ? 'qwen2.5vl:7b' : 'gpt-4o');
 
 let openaiClient: OpenAI | null = null;
-if (apiKey && !apiKey.includes('your_openai_api_key')) {
-  openaiClient = new OpenAI({ apiKey });
-  console.log(`[OpenAI] Initialized client with model ${model}`);
+const isOllama = provider === 'ollama' || ollamaBaseUrl.includes('11434');
+
+if (isOllama) {
+  openaiClient = new OpenAI({
+    baseURL: ollamaBaseUrl,
+    apiKey: 'ollama' // Dummy key required by OpenAI client
+  });
+  console.log(`[AI Service] Connected to Ollama at ${ollamaBaseUrl} using model: ${model}`);
+} else if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('your_openai_api_key')) {
+  openaiClient = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+  });
+  console.log(`[AI Service] Connected to OpenAI using model: ${model}`);
 } else {
-  console.log('[OpenAI] No valid API key found. Operating in heuristic & smart mock mode.');
+  // Try local Ollama by default
+  openaiClient = new OpenAI({
+    baseURL: 'http://localhost:11434/v1',
+    apiKey: 'ollama'
+  });
+  console.log(`[AI Service] Defaulting to local Ollama (http://localhost:11434/v1) with model: ${model}`);
 }
 
-const JSON_SCHEMA_OUTPUT = {
-  type: 'object',
-  properties: {
-    title: {
-      type: 'string',
-      description: 'Precise name or title of the identified item, product, book, movie, place, or concept'
-    },
-    description: {
-      type: 'string',
-      description: 'Clear 1-2 sentence summary of what this item is, key features or context'
-    },
-    category: {
-      type: 'string',
-      description: 'Standard canonical category (e.g. Fashion, Books, Movies & Shows, Electronics & Tech, Home & Living, Food & Dining, Travel & Places, Gaming & Toys, Health & Beauty, Research & Ideas)'
-    },
-    subcategory: {
-      type: 'string',
-      description: 'Specific subcategory (e.g. Shoes, Smartphones, Self-Help, Sci-Fi, Coffee, Board Games, Furniture)'
-    },
-    intent: {
-      type: 'string',
-      enum: ['buy', 'gift', 'research', 'try', 'watch', 'read', 'eat', 'visit', 'other'],
-      description: 'User intent deduced from visual cues or user notes'
-    },
-    price: {
-      type: ['string', 'null'],
-      description: 'Detected price string (e.g. "$120", "€45") or null if none'
-    },
-    tags: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'Relevant search tags'
-    },
-    metadata: {
-      type: 'object',
-      description: 'Key-value pairs of extracted details (brand, author, rating, etc.)',
-      additionalProperties: true
-    }
-  },
-  required: ['title', 'description', 'category', 'subcategory', 'intent', 'price', 'tags'],
-  additionalProperties: false
-};
+const JSON_PROMPT_INSTRUCTIONS = `
+You MUST return ONLY a valid, single JSON object with this exact structure:
+{
+  "title": "Precise product, book, movie, place or item name",
+  "description": "Short 1-2 sentence description",
+  "category": "Standard canonical category (e.g. Fashion, Books, Movies & Shows, Electronics & Tech, Home & Living, Food & Dining, Travel & Places, Gaming & Toys, Health & Beauty, Research & Ideas)",
+  "subcategory": "Specific subcategory (e.g. Shoes, Smartphones, Fiction, Action, Coffee, Board Games, Furniture)",
+  "intent": "One of: buy, gift, research, try, watch, read, eat, visit, other",
+  "price": "$160 or null if not applicable or found",
+  "tags": ["tag1", "tag2"]
+}
+`;
+
+function extractAndParseJson(text: string): any {
+  if (!text) throw new Error('Empty response');
+
+  // Strip markdown ```json ... ``` code fences if present
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  }
+
+  // Try direct parse first
+  try {
+    return JSON.parse(cleaned);
+  } catch {}
+
+  // Regex search for outer curly braces
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (match) {
+    try {
+      return JSON.parse(match[0]);
+    } catch {}
+  }
+
+  throw new Error(`Unable to extract JSON from model output: ${text.substring(0, 150)}...`);
+}
 
 function deduceIntentFromPrompt(prompt?: string): IntentType {
   if (!prompt) return 'buy';
@@ -84,20 +96,13 @@ export async function analyzeScreenshot(
     try {
       const response = await openaiClient.chat.completions.create({
         model: model,
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'WishlistItemExtraction',
-            strict: false,
-            schema: JSON_SCHEMA_OUTPUT as any
-          }
-        },
+        response_format: { type: 'json_object' },
         messages: [
           {
             role: 'system',
-            content: `You are an expert AI wishlist assistant. Your job is to analyze captured screenshots and user context to identify exactly what the item is and categorize it cleanly.
-Normalize categories strictly into standard canonical forms (e.g., clothes/sneakers -> Fashion, books -> Books, games/lego -> Gaming & Toys, movies -> Movies & Shows).
-If user prompt mentions "Gift for cousin", "Buy this", "Want to try", adjust intent and description accordingly.`
+            content: `You are an expert AI wishlist assistant. Analyze captured screenshots and user context to identify the item and categorize it.
+${JSON_PROMPT_INSTRUCTIONS}
+Normalize categories strictly into standard canonical forms (e.g. clothes/sneakers -> Fashion, books -> Books, games/lego -> Gaming & Toys, movies -> Movies & Shows).`
           },
           {
             role: 'user',
@@ -117,13 +122,23 @@ If user prompt mentions "Gift for cousin", "Buy this", "Want to try", adjust int
             ]
           }
         ],
-        max_tokens: 1000
+        max_tokens: 800
       });
 
       const rawJson = response.choices[0]?.message?.content;
       if (rawJson) {
-        const parsed = JSON.parse(rawJson);
-        const validated = StructuredAIOutputSchema.parse(parsed);
+        const parsed = extractAndParseJson(rawJson);
+        const validated = StructuredAIOutputSchema.parse({
+          title: parsed.title || 'Captured Item',
+          description: parsed.description || '',
+          category: parsed.category || 'Other',
+          subcategory: parsed.subcategory || 'General',
+          intent: parsed.intent || (userPrompt ? deduceIntentFromPrompt(userPrompt) : 'buy'),
+          price: parsed.price ?? null,
+          tags: Array.isArray(parsed.tags) ? parsed.tags : ['snip'],
+          metadata: parsed.metadata || {}
+        });
+
         const { category: normalizedCat } = normalizeCategory(validated.category);
         return {
           ...validated,
@@ -131,12 +146,12 @@ If user prompt mentions "Gift for cousin", "Buy this", "Want to try", adjust int
           intent: userPrompt ? deduceIntentFromPrompt(userPrompt) : validated.intent
         };
       }
-    } catch (err) {
-      console.error('[OpenAI Vision] Error calling OpenAI API:', err);
+    } catch (err: any) {
+      console.warn(`[AI Vision: ${model}] Inference attempt failed or timed out:`, err.message);
     }
   }
 
-  // Smart Heuristic Fallback when no API key or on API failure
+  // Smart Heuristic Fallback when model is loading or offline
   const deducedIntent = deduceIntentFromPrompt(userPrompt);
   let title = 'Captured Wishlist Item';
   let category = 'Other';
@@ -199,24 +214,16 @@ export async function analyzeWebpage(
     try {
       const response = await openaiClient.chat.completions.create({
         model: model,
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'WebWishlistItemExtraction',
-            strict: false,
-            schema: JSON_SCHEMA_OUTPUT as any
-          }
-        },
+        response_format: { type: 'json_object' },
         messages: [
           {
             role: 'system',
-            content: `You are an expert AI wishlist extractor. You receive extracted webpage data (title, URL, website, OpenGraph, JSON-LD, prices, selected text, user prompt).
-Deduce the true product/item name, canonical category, specific subcategory, intent, clean price, short description, and tags.
-Normalize categories (e.g., fashion, electronics, books, movies, dining, toys, etc.).`
+            content: `You are an expert AI wishlist assistant. Extract and categorize webpage product/content details.
+${JSON_PROMPT_INSTRUCTIONS}`
           },
           {
             role: 'user',
-            content: `Analyze this webpage extraction:
+            content: `Analyze this webpage extraction and output JSON:
 URL: ${webData.url}
 Title: ${webData.title}
 Website: ${webData.website || 'Unknown'}
@@ -232,8 +239,18 @@ JSON-LD: ${JSON.stringify(webData.jsonLd || {})}`
 
       const rawJson = response.choices[0]?.message?.content;
       if (rawJson) {
-        const parsed = JSON.parse(rawJson);
-        const validated = StructuredAIOutputSchema.parse(parsed);
+        const parsed = extractAndParseJson(rawJson);
+        const validated = StructuredAIOutputSchema.parse({
+          title: parsed.title || webData.title,
+          description: parsed.description || (webData.ogData && webData.ogData.description) || '',
+          category: parsed.category || 'Other',
+          subcategory: parsed.subcategory || 'General',
+          intent: parsed.intent || deducedIntent,
+          price: parsed.price || webData.price || null,
+          tags: Array.isArray(parsed.tags) ? parsed.tags : [webData.website || 'web'],
+          metadata: parsed.metadata || {}
+        });
+
         const { category: normalizedCat } = normalizeCategory(validated.category);
         return {
           ...validated,
@@ -241,8 +258,8 @@ JSON-LD: ${JSON.stringify(webData.jsonLd || {})}`
           intent: webData.userPrompt ? deducedIntent : validated.intent
         };
       }
-    } catch (err) {
-      console.error('[OpenAI Web] Error calling OpenAI API:', err);
+    } catch (err: any) {
+      console.warn(`[AI Web: ${model}] Error calling model:`, err.message);
     }
   }
 
@@ -252,7 +269,6 @@ JSON-LD: ${JSON.stringify(webData.jsonLd || {})}`
   let detectedPrice = webData.price || (webData.ogData && webData.ogData.price) || null;
   let title = webData.title || 'Saved Web Item';
 
-  // Basic cleanup of website title noise (e.g. "Nike Vomero 5 - Official Nike Store")
   if (title.includes(' | ')) {
     title = title.split(' | ')[0];
   } else if (title.includes(' - ')) {

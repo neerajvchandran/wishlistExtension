@@ -4,87 +4,130 @@ An AI-powered desktop application and Chrome extension that lets you capture any
 
 ---
 
-## Features
+## Architecture Overview
 
-- **Instant Desktop Capture**:
-  - Global keyboard shortcut (`Ctrl+Shift+S` or `Alt+Shift+W`).
-  - Screen-selection overlay to snip any product, book, movie, place, or recipe directly from your screen.
-  - Quick Context Prompt window: add intent notes ("Buy this", "Gift for cousin", "Research this", "Want to try later").
-  - Temporary screenshot capture: screenshot is used for AI identification and discarded or kept per preference.
-- **Chrome Manifest V3 Extension**:
-  - Right-click context menu: "Add to Everything Wishlist" (page, selected text, image, link).
-  - Browser extension popup with automatic page metadata, OpenGraph, JSON-LD, and price extraction.
-  - Keyboard shortcut (`Ctrl+Shift+W`).
-- **AI Categorization & Normalization**:
-  - Automatically identifies items, canonical categories (e.g. *Fashion, Books, Electronics & Tech, Movies & Shows, Food & Dining, Travel & Places, Gaming & Toys, Health & Beauty, Research & Ideas*), specific subcategories, price, and intent.
-  - Normalizes equivalent terms (e.g. "clothes", "apparel", and "clothing" automatically unify into "Fashion").
-  - Full user sovereignty: AI suggestions are never authoritative. Edit title, category, subcategory, intent, price, description, notes, or delete anytime.
-- **Privacy & Security**:
-  - OpenAI API keys are strictly kept on the server; client applications never expose keys.
-  - Supabase PostgreSQL with Row Level Security (RLS) ensures users only access their own items.
-  - Zero-config local fallback mode: works out of the box even before configuring cloud keys.
+* **Desktop App**: Electron + React + Vite + Tailwind CSS (Global shortcut `Ctrl+Shift+S` screen snipper)
+* **Chrome Extension**: Manifest V3 extension (Popup extraction, right-click menu, keyboard shortcut)
+* **Backend**: Node.js + Express API (`http://localhost:3001`)
+* **AI Engine**: Supports **Local Ollama** (`qwen2.5vl:7b`), **OpenAI** (`gpt-4o`), or automatic offline heuristic fallback
+* **Database**: **Supabase PostgreSQL** (or zero-config local in-memory storage if no credentials provided)
 
 ---
 
-## Project Structure
+## Quick Start (For Anyone Cloning This Repo)
 
-```
-├── AGENTS.md
-├── package.json                   # Root workspaces config
-├── packages/
-│   └── shared/                    # Shared TypeScript interfaces, taxonomy & schema
-├── apps/
-│   ├── backend/                   # Node.js + Express + OpenAI Vision + Supabase
-│   ├── desktop/                   # Electron + React + Vite + Tailwind CSS
-│   └── extension/                 # Chrome Extension Manifest V3
-└── supabase/
-    ├── schema.sql                 # PostgreSQL tables (wishlist_items, categories), RLS policies
-    └── seed.sql                   # Canonical categories and starter seed items
-```
-
----
-
-## Quick Start
-
-### 1. Install Dependencies
+### 1. Clone & Install Dependencies
 ```bash
+git clone https://github.com/your-username/everything-wishlist.git
+cd everything-wishlist
 npm install
 ```
 
-### 2. Configure Environment (Optional)
-Copy `.env.example` to `.env` in `apps/backend`:
+---
+
+### 2. Configure AI & Environment
+
+Copy the example configuration:
 ```bash
+# On Windows PowerShell:
+copy apps\backend\.env.example apps\backend\.env
+
+# On macOS/Linux:
 cp apps/backend/.env.example apps/backend/.env
 ```
-Fill in your `OPENAI_API_KEY` and Supabase credentials if available. (If left blank, the app will run in high-fidelity mock/heuristic mode for offline development).
 
-### 3. Start Backend Server
+Open `apps/backend/.env` and pick your preferred AI setup:
+
+#### Option A: 100% Free & Local with Ollama (Recommended)
+No API keys needed! Download [Ollama](https://ollama.com/) and run:
+```bash
+ollama run qwen2.5vl:7b
+```
+Keep the default settings in `apps/backend/.env`:
+```env
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434/v1
+OLLAMA_MODEL=qwen2.5vl:7b
+```
+
+#### Option B: Cloud OpenAI
+Set `AI_PROVIDER=openai` and add your OpenAI API key:
+```env
+AI_PROVIDER=openai
+OPENAI_API_KEY=sk-your-openai-api-key
+OPENAI_MODEL=gpt-4o
+```
+
+#### Option C: Zero-Config Offline Mode
+If Ollama is not running and no OpenAI key is set, the backend **automatically falls back to high-fidelity heuristic categorization** out of the box.
+
+---
+
+### 3. Start the Backend API
+In terminal #1:
 ```bash
 npm run dev:backend
 ```
 Backend runs on `http://localhost:3001`.
 
-### 4. Run Desktop Application
-```bash
-# In another terminal:
-npm run dev:desktop
-```
-Press `Ctrl+Shift+S` anywhere on your computer to trigger the screen snipping overlay!
+---
 
-### 5. Load Chrome Extension
-1. Open Google Chrome and go to `chrome://extensions`.
-2. Turn on **Developer mode** (toggle in top right).
-3. Click **Load unpacked**.
-4. Select the `apps/extension` folder.
-5. Click the extension icon on any webpage or right-click to add to your wishlist!
+### 4. Run the Desktop Application
+In terminal #2:
+```bash
+npm run dev:electron
+```
+* The desktop application will open.
+* Press **`Ctrl+Shift+S`** anywhere on your computer to trigger the global screen-selection sniper!
 
 ---
 
-## Supabase Database Setup
+### 5. Load the Chrome Extension
 
-To use Supabase as your cloud source of truth:
-1. Create a project on [Supabase](https://supabase.com).
-2. Go to the **SQL Editor** in your Supabase dashboard.
-3. Paste and run the contents of [`supabase/schema.sql`](file:///e:/extension/supabase/schema.sql).
-4. Run [`supabase/seed.sql`](file:///e:/extension/supabase/seed.sql) to populate initial categories.
-5. Add your `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to `apps/backend/.env`.
+1. Open Google Chrome and navigate to:
+   ```text
+   chrome://extensions
+   ```
+2. Enable **Developer mode** (toggle in the top-right corner).
+3. Click **Load unpacked** (top-left button).
+4. Select the `apps/extension` folder inside this repository:
+   ```text
+   e:/extension/apps/extension
+   ```
+5. *(Optional)* Pin the **Everything Wishlist** icon to your Chrome toolbar.
+6. Open any product or page (e.g. Amazon), press **`F5`** to refresh, and click the extension icon to capture it!
+
+---
+
+## How to Use
+
+### Desktop Screen Snipping
+1. Press `Ctrl+Shift+S` (or click "Capture Screen" in the desktop app).
+2. Drag a rectangle over any product, book, movie, or item on your screen.
+3. Add quick context in the prompt modal (e.g., *"Buy this"*, *"Gift for mom"*, *"Research reviews"*).
+4. AI analyzes the screenshot, auto-categorizes it into canonical categories, and saves it to your wishlist.
+
+### Chrome Extension
+* **Popup**: Click the extension icon on any webpage to extract metadata (Amazon titles, images, and prices are automatically detected).
+* **Right-Click**: Right-click any image, link, or text selection → **"Add to Everything Wishlist"**.
+* **Keyboard Shortcut**: Press `Ctrl+Shift+W`.
+
+---
+
+## Optional: Supabase Cloud Database
+
+If you want cloud persistence across multiple devices:
+1. Create a free project on [Supabase](https://supabase.com).
+2. In your Supabase Dashboard, open the **SQL Editor**.
+3. Run [`supabase/schema.sql`](supabase/schema.sql) followed by [`supabase/seed.sql`](supabase/seed.sql).
+4. Add your `SUPABASE_URL` and `SUPABASE_ANON_KEY` to `apps/backend/.env`.
+
+*(If skipped, the app automatically runs with local in-memory storage).*
+
+---
+
+## Security & Privacy Note
+
+* Client applications (Chrome extension & Desktop frontend) **never** touch AI keys or secret credentials.
+* All AI inference and database interactions are securely routed through the backend server.
+* Screenshots taken via the snipper are used temporarily for analysis and discarded unless saved by preference.
