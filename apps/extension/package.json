@@ -1,0 +1,15 @@
+{
+  "name": "@everything-wishlist/extension",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@everything-wishlist/shared": "*"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "typescript": "^5.4.5"
+  }
+}

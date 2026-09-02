@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Screen Snip Overlay</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body, html {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      cursor: crosshair;
+      background: rgba(0, 0, 0, 0.35);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+    }
+    .hint-badge {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 20, 34, 0.9);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      color: #f1f5f9;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      z-index: 20;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .key-badge {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .selection-info {
+      position: absolute;
+      background: rgba(139, 92, 246, 0.9);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 25;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="hint-badge">
+    <span>Click & drag to snip an item</span>
+    <span class="key-badge">ESC to cancel</span>
+  </div>
+  <div id="selectionInfo" class="selection-info"></div>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const info = document.getElementById('selectionInfo');
+
+    let isDrawing = false;
+    let startX = 0;
+    let startY = 0;
+    let currentX = 0;
+    let currentY = 0;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        ipcRenderer.send('snip:cancel');
+      }
+    });
+
+    window.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      currentX = e.clientX;
+      currentY = e.clientY;
+      draw();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDrawing) return;
+      currentX = e.clientX;
+      currentY = e.clientY;
+      draw();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isDrawing) return;
+      isDrawing = false;
+
+      const x = Math.min(startX, currentX);
+      const y = Math.min(startY, currentY);
+      const width = Math.abs(currentX - startX);
+      const height = Math.abs(currentY - startY);
+
+      if (width > 20 && height > 20) {
+        ipcRenderer.send('snip:selected', { x, y, width, height });
+      } else {
+        ipcRenderer.send('snip:cancel');
+      }
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!isDrawing) return;
+
+      const x = Math.min(startX, currentX);
+      const y = Math.min(startY, currentY);
+      const width = Math.abs(currentX - startX);
+      const height = Math.abs(currentY - startY);
+
+      // Darken outside
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Clear the selected area cutout
+      ctx.clearRect(x, y, width, height);
+
+      // Draw glowing outline
+      ctx.strokeStyle = '#8b5cf6';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(x, y, width, height);
+
+      // Update dimension badge
+      info.style.display = 'block';
+      info.style.left = (x + 6) + 'px';
+      info.style.top = (y + height + 6) + 'px';
+      info.textContent = `${Math.round(width)} × ${Math.round(height)} px`;
+    }
+  </script>
+</body>
+</html>

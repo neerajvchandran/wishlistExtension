@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Everything Wishlist</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <div class="logo-icon">✦</div>
+        <span class="logo-text">Everything <strong>Wishlist</strong></span>
+      </div>
+      <span class="badge">Chrome Extension</span>
+    </div>
+
+    <!-- Page Preview Card -->
+    <div id="previewCard" class="card">
+      <div id="cardImageContainer" class="card-image-wrap">
+        <img id="itemImage" src="" alt="" style="display: none;">
+        <div id="imagePlaceholder" class="placeholder-icon">✦</div>
+      </div>
+      <div class="card-details">
+        <span id="domainTag" class="domain-tag">Extracting...</span>
+        <h3 id="itemTitle" class="item-title">Reading page information...</h3>
+        <span id="itemPrice" class="price-tag" style="display: none;"></span>
+      </div>
+    </div>
+
+    <!-- Intent Selector -->
+    <div class="form-group">
+      <label class="label">Primary Intent:</label>
+      <div class="intent-chips">
+        <button type="button" class="chip active" data-intent="buy">Buy</button>
+        <button type="button" class="chip" data-intent="gift">Gift</button>
+        <button type="button" class="chip" data-intent="research">Research</button>
+        <button type="button" class="chip" data-intent="try">Try</button>
+        <button type="button" class="chip" data-intent="watch">Watch</button>
+        <button type="button" class="chip" data-intent="read">Read</button>
+        <button type="button" class="chip" data-intent="eat">Eat</button>
+        <button type="button" class="chip" data-intent="visit">Visit</button>
+      </div>
+    </div>
+
+    <!-- Prompt / Note Input -->
+    <div class="form-group">
+      <label for="userPrompt" class="label">Context or Notes:</label>
+      <textarea id="userPrompt" rows="2" placeholder="e.g. 'Gift for cousin's birthday' or 'Buy on sale'"></textarea>
+    </div>
+
+    <!-- Status Message -->
+    <div id="statusMessage" class="status-msg" style="display: none;"></div>
+
+    <!-- Actions -->
+    <div class="footer">
+      <button id="saveBtn" class="btn-save">
+        <span id="btnIcon">✦</span>
+        <span id="btnText">Save to Wishlist</span>
+      </button>
+    </div>
+  </div>
+
+  <script src="dist/popup.js"></script>
+</body>
+</html>

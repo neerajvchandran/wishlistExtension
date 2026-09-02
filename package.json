@@ -1,0 +1,23 @@
+{
+  "name": "everything-wishlist-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/shared",
+    "apps/backend",
+    "apps/desktop",
+    "apps/extension"
+  ],
+  "scripts": {
+    "dev:backend": "npm --workspace=@everything-wishlist/backend run dev",
+    "dev:desktop": "npm --workspace=@everything-wishlist/desktop run dev",
+    "build": "npm --workspaces run build",
+    "build:backend": "npm --workspace=@everything-wishlist/backend run build",
+    "build:desktop": "npm --workspace=@everything-wishlist/desktop run build",
+    "build:extension": "npm --workspace=@everything-wishlist/extension run build",
+    "start:backend": "npm --workspace=@everything-wishlist/backend run start"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
