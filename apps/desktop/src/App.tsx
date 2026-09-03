@@ -98,6 +98,15 @@ export const App: React.FC = () => {
     }));
   }, [categories, items]);
 
+  // Compute available intents from active items
+  const availableIntents = useMemo(() => {
+    const intentSet = new Set<string>();
+    items.forEach((item) => {
+      if (item.intent) intentSet.add(item.intent);
+    });
+    return Array.from(intentSet);
+  }, [items]);
+
   // Filter items by search query, category, and intent
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -200,6 +209,7 @@ export const App: React.FC = () => {
         selectedIntent={selectedIntent}
         onSelectIntent={setSelectedIntent}
         totalItemsCount={items.length}
+        availableIntents={availableIntents}
       />
 
       {/* Main Wishlist Content */}

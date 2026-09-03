@@ -32,25 +32,22 @@
       </div>
     </div>
 
-    <!-- Intent Selector -->
-    <div class="form-group">
-      <label class="label">Primary Intent:</label>
-      <div class="intent-chips">
-        <button type="button" class="chip active" data-intent="buy">Buy</button>
-        <button type="button" class="chip" data-intent="gift">Gift</button>
-        <button type="button" class="chip" data-intent="research">Research</button>
-        <button type="button" class="chip" data-intent="try">Try</button>
-        <button type="button" class="chip" data-intent="watch">Watch</button>
-        <button type="button" class="chip" data-intent="read">Read</button>
-        <button type="button" class="chip" data-intent="eat">Eat</button>
-        <button type="button" class="chip" data-intent="visit">Visit</button>
-      </div>
+    <!-- AI Auto Deduction Banner -->
+    <div class="ai-deduction-badge">
+      <span class="ai-badge-icon">✦</span>
+      <span class="ai-badge-text">AI automatically deduces intent, suggests comments, and categorizes</span>
     </div>
 
-    <!-- Prompt / Note Input -->
+    <!-- Prompt / Note Input with AI Suggested Comment -->
     <div class="form-group">
-      <label for="userPrompt" class="label">Context or Notes:</label>
-      <textarea id="userPrompt" rows="2" placeholder="e.g. 'Gift for cousin's birthday' or 'Buy on sale'"></textarea>
+      <div class="label-row">
+        <label for="userPrompt" class="label">Comment / Notes:</label>
+        <button type="button" id="clearPromptBtn" class="clear-btn" style="display: none;">Clear</button>
+      </div>
+      <textarea id="userPrompt" rows="2" placeholder="e.g. 'Gift for cousin' or notes... AI will summarize into bullet points"></textarea>
+      <div id="aiSuggestionNotice" class="ai-suggestion-tag" style="display: none;">
+        <span>✦ AI Suggested: <strong id="aiSuggestedText"></strong></span>
+      </div>
     </div>
 
     <!-- Status Message -->

@@ -26,6 +26,7 @@ interface CategoryFilterProps {
   selectedIntent: string;
   onSelectIntent: (intent: string) => void;
   totalItemsCount: number;
+  availableIntents?: string[];
 }
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -41,7 +42,7 @@ const iconMap: Record<string, React.ReactNode> = {
   Lightbulb: <Lightbulb className="w-3.5 h-3.5" />
 };
 
-const intentBadges: { id: IntentType | 'all'; label: string; icon: React.ReactNode; color: string }[] = [
+const allIntentBadges: { id: IntentType | 'all'; label: string; icon: React.ReactNode; color: string }[] = [
   { id: 'all', label: 'All Intents', icon: <Grid className="w-3 h-3" />, color: 'text-slate-300' },
   { id: 'buy', label: 'Buy', icon: <ShoppingBag className="w-3 h-3" />, color: 'text-emerald-400' },
   { id: 'gift', label: 'Gift', icon: <Gift className="w-3 h-3" />, color: 'text-pink-400' },
@@ -59,10 +60,24 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   onSelectCategory,
   selectedIntent,
   onSelectIntent,
-  totalItemsCount
+  totalItemsCount,
+  availableIntents = []
 }) => {
+  // If there are no items, hide the filter bar completely to keep the interface pristine and empty
+  if (totalItemsCount === 0) {
+    return null;
+  }
+
+  // Only display categories that actually have items in the user's wishlist
+  const activeCategories = categories.filter((cat) => (cat.item_count || 0) > 0);
+
+  // Only display intents that actually exist in saved items
+  const activeIntents = allIntentBadges.filter(
+    (b) => b.id === 'all' || availableIntents.includes(b.id)
+  );
+
   return (
-    <div className="w-full max-w-7xl mx-auto px-6 pt-6 pb-2 space-y-3">
+    <div className="w-full max-w-7xl mx-auto px-6 pt-6 pb-2 space-y-3 animate-in fade-in duration-300">
       {/* Category Pills */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
         <button
@@ -82,7 +97,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
           </span>
         </button>
 
-        {categories.map((cat) => {
+        {activeCategories.map((cat) => {
           const isSelected = selectedCategory.toLowerCase() === cat.name.toLowerCase();
           return (
             <button
@@ -108,29 +123,32 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         })}
       </div>
 
-      {/* Intent Filters */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mr-1">
-          Intent:
-        </span>
-        {intentBadges.map((intent) => {
-          const isSelected = selectedIntent === intent.id;
-          return (
-            <button
-              key={intent.id}
-              onClick={() => onSelectIntent(intent.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium transition-all ${
-                isSelected
-                  ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-              }`}
-            >
-              <span className={intent.color}>{intent.icon}</span>
-              <span>{intent.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Intent Filters (Only rendered if more than 1 intent is available) */}
+      {activeIntents.length > 1 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+          <span className="text-[11px] font-semibold text-brand-400 flex items-center gap-1 uppercase tracking-wider mr-1">
+            <Sparkles className="w-3 h-3" />
+            AI Intent:
+          </span>
+          {activeIntents.map((intent) => {
+            const isSelected = selectedIntent === intent.id;
+            return (
+              <button
+                key={intent.id}
+                onClick={() => onSelectIntent(intent.id)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium transition-all ${
+                  isSelected
+                    ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                }`}
+              >
+                <span className={intent.color}>{intent.icon}</span>
+                <span>{intent.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

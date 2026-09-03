@@ -19,6 +19,9 @@ export interface WishlistItem {
   category: string;
   subcategory: string;
   intent: IntentType;
+  intent_reasoning?: string;
+  suggested_comment?: string;
+  bullet_points?: string[];
   image_url?: string;
   source_url?: string;
   source_website?: string;
@@ -45,7 +48,10 @@ export const StructuredAIOutputSchema = z.object({
   description: z.string().describe('Clear 1-2 sentence summary of what this item is, key features or context'),
   category: z.string().describe('Standard canonical category name (e.g. Fashion, Books, Movies, Electronics, Home, Food, Travel, Toys, Gaming, Beauty)'),
   subcategory: z.string().describe('Specific subcategory (e.g. Shoes, Sci-Fi, Action, Smartphones, Coffee, Board Games, Skincare)'),
-  intent: z.enum(['buy', 'gift', 'research', 'try', 'watch', 'read', 'eat', 'visit', 'other']).describe('Primary user intent deduced from visual cues or user notes'),
+  intent: z.enum(['buy', 'gift', 'research', 'try', 'watch', 'read', 'eat', 'visit', 'other']).describe('Primary user intent deduced from visual cues, stock status, or user notes'),
+  intent_reasoning: z.string().optional().describe('Short 1-sentence reasoning of why AI chose this intent and category'),
+  suggested_comment: z.string().optional().describe('Default comment suggested by AI based on context, e.g. "Watch this", "Read this", "Wait till stock gets back or look at local retailers", "Buy this"'),
+  bullet_points: z.array(z.string()).optional().describe('Summarized concise bullet points of any user comments, notes, or long text'),
   price: z.string().nullable().optional().describe('Detected price string with currency symbol (e.g. "$160", "€45") or null if not applicable/found'),
   tags: z.array(z.string()).describe('Useful searchable tags related to the item'),
   metadata: z.record(z.any()).optional().describe('Additional attributes detected like brand, author, release_year, specifications, etc.')
@@ -74,6 +80,13 @@ export interface WebAnalysisRequest {
   imageUrl?: string;
   price?: string;
   userPrompt?: string;
+  isOutOfStock?: boolean;
+  stockReason?: string;
+  genre?: string;
+  breadcrumbs?: string[];
+  keywords?: string[];
+  snippet?: string;
+  screenText?: string;
 }
 
 export interface ApiResponse<T = any> {

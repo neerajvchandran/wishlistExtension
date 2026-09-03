@@ -164,11 +164,48 @@ body {
   color: #e2e8f0;
 }
 
-.chip.active {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: #8b5cf6;
+.ai-deduction-badge {
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
   color: #c4b5fd;
-  font-weight: 600;
+  font-weight: 500;
+}
+
+.ai-badge-icon {
+  color: #a78bfa;
+  font-size: 13px;
+}
+
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 10px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.clear-btn:hover {
+  color: #f87171;
+}
+
+.ai-suggestion-tag {
+  font-size: 10px;
+  color: #a78bfa;
+  margin-top: 2px;
 }
 
 textarea {

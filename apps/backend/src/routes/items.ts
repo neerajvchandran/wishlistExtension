@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../services/supabase';
 import { normalizeCategory } from '@everything-wishlist/shared';
+import { summarizeToBulletPoints } from '../services/openai';
 
 const router = Router();
 
@@ -27,6 +28,11 @@ router.post('/', async (req: Request, res: Response) => {
     if (itemData.category) {
       const { category: normalized } = normalizeCategory(itemData.category);
       itemData.category = normalized;
+    }
+
+    // Auto-generate bullet points if user prompt is provided and bullet_points not set
+    if ((!itemData.bullet_points || itemData.bullet_points.length === 0) && itemData.user_prompt) {
+      itemData.bullet_points = summarizeToBulletPoints(itemData.user_prompt);
     }
 
     const saved = await db.addItem(itemData);

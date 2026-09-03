@@ -36,6 +36,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     category: 'Fashion',
     subcategory: '',
     intent: 'buy',
+    intent_reasoning: '',
+    suggested_comment: '',
+    bullet_points: [],
     price: '',
     source_url: '',
     source_website: '',
@@ -45,7 +48,11 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
   useEffect(() => {
     if (item) {
-      setFormData(item);
+      setFormData({
+        ...item,
+        bullet_points: item.bullet_points || item.metadata?.bullet_points || [],
+        intent_reasoning: item.intent_reasoning || item.metadata?.intent_reasoning || ''
+      });
     } else {
       setFormData({
         title: '',
@@ -53,6 +60,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         category: 'Fashion',
         subcategory: '',
         intent: 'buy',
+        intent_reasoning: '',
+        suggested_comment: '',
+        bullet_points: [],
         price: '',
         source_url: '',
         source_website: '',
@@ -152,15 +162,20 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 className="w-full px-3 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-brand-500"
               >
                 <option value="buy">Buy</option>
-                <option value="gift">Gift</option>
-                <option value="research">Research</option>
-                <option value="try">Try</option>
                 <option value="watch">Watch</option>
                 <option value="read">Read</option>
+                <option value="research">Research</option>
                 <option value="eat">Eat / Dine</option>
                 <option value="visit">Visit</option>
+                <option value="gift">Gift</option>
+                <option value="try">Try</option>
                 <option value="other">Other</option>
               </select>
+              {formData.intent_reasoning && (
+                <p className="text-[10px] text-brand-300/80 italic mt-1 line-clamp-1">
+                  ✦ AI: {formData.intent_reasoning}
+                </p>
+              )}
             </div>
           </div>
 
@@ -206,9 +221,20 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
           {/* User Prompt / Notes */}
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">
-              Personal Notes / Context
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-semibold text-slate-300">
+                Personal Notes / Context
+              </label>
+              {formData.user_prompt && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, user_prompt: '', bullet_points: [] })}
+                  className="text-[11px] text-slate-400 hover:text-rose-400 underline transition-colors"
+                >
+                  Clear notes
+                </button>
+              )}
+            </div>
             <div className="relative">
               <MessageSquare className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
               <textarea
@@ -220,6 +246,33 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               />
             </div>
           </div>
+
+          {/* AI Bulleted Summary */}
+          {formData.bullet_points && formData.bullet_points.length > 0 && (
+            <div className="p-3 rounded-xl bg-slate-900/90 border border-brand-900/50 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-brand-400 uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  AI Distilled Bullet Points
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, bullet_points: [] })}
+                  className="text-[10px] text-slate-500 hover:text-rose-400 transition-colors"
+                >
+                  Remove bullets
+                </button>
+              </div>
+              <ul className="space-y-1 text-xs text-slate-300">
+                {formData.bullet_points.map((pt, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className="text-brand-400 font-bold">•</span>
+                    <span>{pt}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Source URL & Image URL */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

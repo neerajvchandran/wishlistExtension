@@ -41,8 +41,11 @@ export const WishlistCard: React.FC<WishlistCardProps> = ({ item, onEdit, onDele
     ? new Date(item.date_added).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
     : null;
 
+  const reasoning = item.intent_reasoning || item.metadata?.intent_reasoning;
+  const rawBullets: string[] = item.bullet_points || item.metadata?.bullet_points || [];
+
   return (
-    <div className="glass-card rounded-2xl overflow-hidden flex flex-col group relative">
+    <div className="glass-card rounded-2xl overflow-hidden flex flex-col group relative transition-all hover:border-brand-500/40">
       {/* Top Image Container */}
       <div className="relative w-full h-48 bg-slate-900/90 overflow-hidden">
         {item.image_url ? (
@@ -51,7 +54,6 @@ export const WishlistCard: React.FC<WishlistCardProps> = ({ item, onEdit, onDele
             alt={item.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             onError={(e) => {
-              // Gracefully handle broken image URLs
               (e.target as HTMLElement).style.display = 'none';
             }}
           />
@@ -64,10 +66,10 @@ export const WishlistCard: React.FC<WishlistCardProps> = ({ item, onEdit, onDele
           </div>
         )}
 
-        {/* Intent Badge */}
-        <div className="absolute top-3 left-3">
+        {/* AI Intent Badge with reasoning tooltip */}
+        <div className="absolute top-3 left-3" title={reasoning || `AI deduced: ${item.intent}`}>
           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide border shadow-md backdrop-blur-md ${intentConfig.bg} ${intentConfig.text}`}>
-            {intentConfig.icon}
+            <Sparkles className="w-3 h-3 text-brand-300" />
             <span className="capitalize">{item.intent}</span>
           </span>
         </div>
@@ -114,9 +116,12 @@ export const WishlistCard: React.FC<WishlistCardProps> = ({ item, onEdit, onDele
       {/* Card Body */}
       <div className="p-4 flex flex-col flex-1 justify-between gap-3">
         <div>
-          {/* Category & Subcategory Tag */}
+          {/* AI Category Tag */}
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-brand-400 mb-1.5">
-            <span>{item.category}</span>
+            <span className="flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-brand-400/80" />
+              {item.category}
+            </span>
             {item.subcategory && (
               <>
                 <span className="text-slate-600">•</span>
@@ -130,6 +135,13 @@ export const WishlistCard: React.FC<WishlistCardProps> = ({ item, onEdit, onDele
             {item.title}
           </h3>
 
+          {/* AI Reasoning if available */}
+          {reasoning && (
+            <p className="text-[11px] text-brand-300/80 mt-1 italic line-clamp-1" title={reasoning}>
+              ✦ {reasoning}
+            </p>
+          )}
+
           {/* Description */}
           {item.description && (
             <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
@@ -137,13 +149,28 @@ export const WishlistCard: React.FC<WishlistCardProps> = ({ item, onEdit, onDele
             </p>
           )}
 
-          {/* User Prompt / Notes */}
-          {item.user_prompt && (
-            <div className="mt-3 p-2 rounded-lg bg-slate-900/80 border border-slate-800/80 flex items-start gap-2 text-xs text-slate-300">
+          {/* AI-Summarized Bullet Points if present */}
+          {rawBullets.length > 0 ? (
+            <div className="mt-3 p-2.5 rounded-xl bg-slate-900/90 border border-brand-900/50 space-y-1.5">
+              <div className="flex items-center gap-1 text-[10px] font-bold text-brand-400 uppercase tracking-wider">
+                <Sparkles className="w-3 h-3 text-brand-400" />
+                <span>AI Notes Summary</span>
+              </div>
+              <ul className="space-y-1 text-xs text-slate-300">
+                {rawBullets.map((bullet, idx) => (
+                  <li key={idx} className="flex items-start gap-1.5 leading-snug">
+                    <span className="text-brand-400 font-bold leading-none mt-0.5">•</span>
+                    <span className="line-clamp-2">{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : item.user_prompt ? (
+            <div className="mt-3 p-2.5 rounded-lg bg-slate-900/80 border border-slate-800/80 flex items-start gap-2 text-xs text-slate-300">
               <MessageSquare className="w-3.5 h-3.5 text-brand-400 shrink-0 mt-0.5" />
               <p className="italic line-clamp-2">"{item.user_prompt}"</p>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Card Footer */}
