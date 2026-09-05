@@ -5,7 +5,7 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "dev:electron": "concurrently \"vite\" \"wait-on tcp:5173 && tsc -p tsconfig.electron.json && electron .\"",
+    "dev:electron": "concurrently --kill-others \"vite\" \"wait-on tcp:5173 && tsc -p tsconfig.electron.json && electron .\"",
     "build": "tsc && vite build && tsc -p tsconfig.electron.json && node -e \"require('fs').copyFileSync('electron/overlay.html', 'dist-electron/overlay.html')\"",
     "build:electron": "tsc -p tsconfig.electron.json && node -e \"require('fs').copyFileSync('electron/overlay.html', 'dist-electron/overlay.html')\"",
     "start": "electron ."

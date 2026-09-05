@@ -11,4 +11,4 @@ VALUES
     ('Gaming & Toys', 'gaming', 'Gamepad2', ARRAY['Video Games', 'Toys & Collectibles', 'Board Games', 'LEGO & Building'], 8),
     ('Health & Beauty', 'health-beauty', 'HeartPulse', ARRAY['Skincare', 'Makeup & Cosmetics', 'Fragrances', 'Fitness & Gym'], 9),
     ('Research & Ideas', 'research', 'Lightbulb', ARRAY['Articles & Papers', 'Software & Tools', 'Tutorials & Guides', 'Project Ideas'], 10)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (slug) DO NOTHING;

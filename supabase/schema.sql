@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    slug TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
     icon TEXT DEFAULT 'Sparkles',
     subcategories TEXT[] DEFAULT '{}',
     sort_order INTEGER DEFAULT 0,
@@ -58,23 +58,23 @@ CREATE TABLE IF NOT EXISTS public.wishlist_items (
 -- Enable RLS for wishlist_items
 ALTER TABLE public.wishlist_items ENABLE ROW LEVEL SECURITY;
 
--- Wishlist Items RLS: Users can ONLY access their own items
+-- Wishlist Items RLS: Users can view their own or unauthenticated desktop items
 CREATE POLICY "Users can view their own items"
     ON public.wishlist_items FOR SELECT
-    USING (auth.uid() = user_id);
+    USING (user_id IS NULL OR auth.uid() = user_id);
 
 CREATE POLICY "Users can insert their own items"
     ON public.wishlist_items FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK (user_id IS NULL OR auth.uid() = user_id);
 
 CREATE POLICY "Users can update their own items"
     ON public.wishlist_items FOR UPDATE
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
+    USING (user_id IS NULL OR auth.uid() = user_id)
+    WITH CHECK (user_id IS NULL OR auth.uid() = user_id);
 
 CREATE POLICY "Users can delete their own items"
     ON public.wishlist_items FOR DELETE
-    USING (auth.uid() = user_id);
+    USING (user_id IS NULL OR auth.uid() = user_id);
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_id ON public.wishlist_items(user_id);

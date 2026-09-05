@@ -1,133 +1,117 @@
-# Everything Wishlist
+# Everything Wishlist 🪄
 
-An AI-powered desktop application and Chrome extension that lets you capture anything you want to buy, research, watch, read, try, eat, or visit — and organizes it automatically using AI.
+An AI-powered wishlist and capture system that lets you save anything you want to buy, research, watch, read, try, eat, or visit — and organizes it automatically with AI.
 
----
-
-## Architecture Overview
-
-* **Desktop App**: Electron + React + Vite + Tailwind CSS (Global shortcut `Ctrl+Shift+S` screen snipper)
-* **Chrome Extension**: Manifest V3 extension (Popup extraction, right-click menu, keyboard shortcut)
-* **Backend**: Node.js + Express API (`http://localhost:3001`)
-* **AI Engine**: Supports **Local Ollama** (`qwen2.5vl:7b`), **OpenAI** (`gpt-4o`), or automatic offline heuristic fallback
-* **Database**: **Supabase PostgreSQL** (or zero-config local in-memory storage if no credentials provided)
+Capture items from **anywhere on your computer**, from your **browser**, or directly via **WhatsApp**.
 
 ---
 
-## Quick Start (For Anyone Cloning This Repo)
+## What's Inside
 
-### 1. Clone & Install Dependencies
+| Component | Tech | Role |
+| :--- | :--- | :--- |
+| **Desktop App** | Electron, React, Tailwind, Vite | Global screen snipping (`Ctrl+Shift+S`), offline cache & visual wishlist viewer |
+| **Chrome Extension** | Manifest V3, TypeScript | One-click webpage capture, context menu right-click, keyboard shortcut (`Ctrl+Shift+W`) |
+| **Backend API** | Node.js, Express, TypeScript | AI processing, WhatsApp query engine, dual-persistence (Local Disk + Supabase) |
+| **AI Engine** | Local Ollama / OpenAI / Heuristic | Auto-categorization into 10 canonical categories, intent detection, bullet points |
+| **WhatsApp Bot** | n8n / Twilio Webhook | Ask *"What's my latest item?"*, *"Show my books"*, or send links/prompts to save |
+
+---
+
+## Quick Start (Clone & Run)
+
+### 1. Clone & Install
 ```bash
 git clone https://github.com/your-username/everything-wishlist.git
 cd everything-wishlist
 npm install
 ```
 
----
-
-### 2. Configure AI & Environment
-
-Copy the example configuration:
+### 2. Environment Setup
+Copy the example environment file:
 ```bash
-# On Windows PowerShell:
+# Windows PowerShell
 copy apps\backend\.env.example apps\backend\.env
 
-# On macOS/Linux:
+# Mac / Linux
 cp apps/backend/.env.example apps/backend/.env
 ```
 
-Open `apps/backend/.env` and pick your preferred AI setup:
-
-#### Option A: 100% Free & Local with Ollama (Recommended)
-No API keys needed! Download [Ollama](https://ollama.com/) and run:
-```bash
-ollama run qwen2.5vl:7b
-```
-Keep the default settings in `apps/backend/.env`:
-```env
-AI_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434/v1
-OLLAMA_MODEL=qwen2.5vl:7b
-```
-
-#### Option B: Cloud OpenAI
-Set `AI_PROVIDER=openai` and add your OpenAI API key:
-```env
-AI_PROVIDER=openai
-OPENAI_API_KEY=sk-your-openai-api-key
-OPENAI_MODEL=gpt-4o
-```
-
-#### Option C: Zero-Config Offline Mode
-If Ollama is not running and no OpenAI key is set, the backend **automatically falls back to high-fidelity heuristic categorization** out of the box.
+Open `apps/backend/.env` to configure your AI:
+* **Option A: 100% Free & Local with Ollama (Recommended)**
+  Install [Ollama](https://ollama.com/) and run:
+  ```bash
+  ollama run qwen2.5vl:7b
+  ```
+  *(Default `.env` is already configured for Ollama on port 11434).*
+* **Option B: OpenAI**
+  Set `AI_PROVIDER=openai` and add your `OPENAI_API_KEY`.
+* **Option C: Zero-Config Offline Fallback**
+  If Ollama isn't running and no OpenAI key is set, the app automatically falls back to built-in smart heuristic categorization.
 
 ---
 
-### 3. Start the Backend API
-In terminal #1:
+### 3. Start the Backend
+In your first terminal:
 ```bash
 npm run dev:backend
 ```
-Backend runs on `http://localhost:3001`.
+Backend runs at `http://localhost:3001`.
 
 ---
 
-### 4. Run the Desktop Application
-In terminal #2:
+### 4. Start the Desktop App
+In your second terminal:
 ```bash
 npm run dev:electron
 ```
-* The desktop application will open.
-* Press **`Ctrl+Shift+S`** anywhere on your computer to trigger the global screen-selection sniper!
+* Press **`Ctrl+Shift+S`** anywhere on your desktop to draw a box around any product or image.
+* Add an optional prompt (e.g. *"Gift for birthday"* or *"Buy later"*), and AI saves it directly.
 
 ---
 
 ### 5. Load the Chrome Extension
-
-1. Open Google Chrome and navigate to:
-   ```text
-   chrome://extensions
+1. Build the extension scripts:
+   ```bash
+   npm run build:extension
    ```
-2. Enable **Developer mode** (toggle in the top-right corner).
-3. Click **Load unpacked** (top-left button).
-4. Select the `apps/extension` folder inside this repository:
+2. Open Google Chrome and go to `chrome://extensions`.
+3. Enable **Developer mode** (top-right toggle).
+4. Click **Load unpacked** and select the folder:
    ```text
-   e:/extension/apps/extension
+   everything-wishlist/apps/extension
    ```
-5. *(Optional)* Pin the **Everything Wishlist** icon to your Chrome toolbar.
-6. Open any product or page (e.g. Amazon), press **`F5`** to refresh, and click the extension icon to capture it!
+5. Click the extension icon on any page, right-click an item, or press **`Ctrl+Shift+W`** to save!
 
 ---
 
-## How to Use
+## Key Features & Mechanisms
 
-### Desktop Screen Snipping
-1. Press `Ctrl+Shift+S` (or click "Capture Screen" in the desktop app).
-2. Drag a rectangle over any product, book, movie, or item on your screen.
-3. Add quick context in the prompt modal (e.g., *"Buy this"*, *"Gift for mom"*, *"Research reviews"*).
-4. AI analyzes the screenshot, auto-categorizes it into canonical categories, and saves it to your wishlist.
+### 1. Dual-Tier Persistent Storage
+* **Works out of the box with zero cloud setup:** Items are stored on local persistent disk (`apps/backend/data/wishlist_store.json`) and cached in Desktop `localStorage`.
+* **Optional Supabase Cloud Sync:** If you configure `SUPABASE_URL` and `SUPABASE_ANON_KEY` in `apps/backend/.env`, items automatically mirror to your PostgreSQL database.
+  * *To setup Supabase:* Simply run [`supabase/setup_complete.sql`](supabase/setup_complete.sql) in your Supabase SQL Editor.
 
-### Chrome Extension
-* **Popup**: Click the extension icon on any webpage to extract metadata (Amazon titles, images, and prices are automatically detected).
-* **Right-Click**: Right-click any image, link, or text selection → **"Add to Everything Wishlist"**.
-* **Keyboard Shortcut**: Press `Ctrl+Shift+W`.
-
----
-
-## Optional: Supabase Cloud Database
-
-If you want cloud persistence across multiple devices:
-1. Create a free project on [Supabase](https://supabase.com).
-2. In your Supabase Dashboard, open the **SQL Editor**.
-3. Run [`supabase/schema.sql`](supabase/schema.sql) followed by [`supabase/seed.sql`](supabase/seed.sql).
-4. Add your `SUPABASE_URL` and `SUPABASE_ANON_KEY` to `apps/backend/.env`.
-
-*(If skipped, the app automatically runs with local in-memory storage).*
+### 2. WhatsApp Query & Save Integration
+* Chat with your wishlist over WhatsApp using Twilio and n8n!
+* **Natural Language Queries:** Ask *"Show my books"*, *"What is my latest item?"*, or *"Show my wishlist"*.
+* **Save on the Go:** Send any product URL or message (e.g., *"Save Nike shoes"*) to add it instantly to your wishlist.
+* An importable n8n workflow is included at [`scripts/n8n-twilio-wishlist-workflow.json`](scripts/n8n-twilio-wishlist-workflow.json).
 
 ---
 
-## Security & Privacy Note
+## Useful Commands
 
-* Client applications (Chrome extension & Desktop frontend) **never** touch AI keys or secret credentials.
-* All AI inference and database interactions are securely routed through the backend server.
-* Screenshots taken via the snipper are used temporarily for analysis and discarded unless saved by preference.
+```bash
+npm run dev:backend       # Run backend API server with hot reload
+npm run dev:electron      # Run Vite desktop frontend + Electron window
+npm run build:extension   # Compile Chrome extension TypeScript
+npm run build             # Build all workspaces
+```
+
+---
+
+## Security & Privacy
+* Secret credentials and AI keys **only live on the backend** (`.env`).
+* Desktop and browser extension clients never expose API keys.
+* Screenshots captured via desktop snipper are analyzed temporarily in-memory and discarded.

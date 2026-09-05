@@ -38,6 +38,9 @@ ehthumbs.db
 *.sln
 *.sw?
 .claude/
-
 random.txt
 *.traineddata
+
+# Local runtime data & maintenance
+apps/backend/data/
+scripts/repair-workflow-version.js

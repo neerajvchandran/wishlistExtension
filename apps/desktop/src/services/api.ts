@@ -1,24 +1,39 @@
 import { WishlistItem, Category, StructuredAIOutput } from '@everything-wishlist/shared';
 
 const BACKEND_URL = (window as any).BACKEND_URL_OVERRIDE || 'http://localhost:3001';
+const CACHE_KEY = 'everything_wishlist_items';
+
+function getLocalCache(): WishlistItem[] {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    return cached ? JSON.parse(cached) : [];
+  } catch {
+    return [];
+  }
+}
+
+function setLocalCache(items: WishlistItem[]): void {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(items));
+  } catch (err) {
+    console.warn('[Cache] Could not update local cache:', err);
+  }
+}
 
 export async function fetchItems(): Promise<WishlistItem[]> {
   try {
     const res = await fetch(`${BACKEND_URL}/api/items`);
     const json = await res.json();
-    if (json.success) return json.data;
+    if (json.success && Array.isArray(json.data)) {
+      setLocalCache(json.data);
+      return json.data;
+    }
   } catch (err) {
     console.warn('[API] Could not reach backend, checking local storage cache...', err);
   }
 
   // Local storage fallback
-  const cached = localStorage.getItem('everything_wishlist_items');
-  if (cached) {
-    try {
-      return JSON.parse(cached);
-    } catch {}
-  }
-  return [];
+  return getLocalCache();
 }
 
 export async function createItem(item: Partial<WishlistItem>): Promise<WishlistItem> {
@@ -29,14 +44,17 @@ export async function createItem(item: Partial<WishlistItem>): Promise<WishlistI
       body: JSON.stringify(item)
     });
     const json = await res.json();
-    if (json.success) {
+    if (json.success && json.data) {
+      const current = getLocalCache();
+      const updated = [json.data, ...current.filter((i) => i.id !== json.data.id)];
+      setLocalCache(updated);
       return json.data;
     }
   } catch (err) {
     console.warn('[API] Backend unreachable, saving to local storage fallback...', err);
   }
 
-  // Fallback save
+  // Fallback save offline
   const fallbackItem: WishlistItem = {
     id: `local_${Date.now()}`,
     title: item.title || 'Untitled',
@@ -53,10 +71,9 @@ export async function createItem(item: Partial<WishlistItem>): Promise<WishlistI
     metadata: item.metadata || {}
   };
 
-  const cached = localStorage.getItem('everything_wishlist_items');
-  const items: WishlistItem[] = cached ? JSON.parse(cached) : [];
-  items.unshift(fallbackItem);
-  localStorage.setItem('everything_wishlist_items', JSON.stringify(items));
+  const current = getLocalCache();
+  current.unshift(fallbackItem);
+  setLocalCache(current);
   return fallbackItem;
 }
 
@@ -68,18 +85,27 @@ export async function updateItem(id: string, updates: Partial<WishlistItem>): Pr
       body: JSON.stringify(updates)
     });
     const json = await res.json();
-    if (json.success) return json.data;
+    if (json.success && json.data) {
+      const current = getLocalCache();
+      const idx = current.findIndex((i) => i.id === id);
+      if (idx !== -1) {
+        current[idx] = json.data;
+      } else {
+        current.unshift(json.data);
+      }
+      setLocalCache(current);
+      return json.data;
+    }
   } catch (err) {
     console.warn('[API] Backend unreachable, updating local storage...', err);
   }
 
-  const cached = localStorage.getItem('everything_wishlist_items');
-  const items: WishlistItem[] = cached ? JSON.parse(cached) : [];
-  const idx = items.findIndex((i) => i.id === id);
+  const current = getLocalCache();
+  const idx = current.findIndex((i) => i.id === id);
   if (idx !== -1) {
-    items[idx] = { ...items[idx], ...updates, updated_at: new Date().toISOString() };
-    localStorage.setItem('everything_wishlist_items', JSON.stringify(items));
-    return items[idx];
+    current[idx] = { ...current[idx], ...updates, updated_at: new Date().toISOString() };
+    setLocalCache(current);
+    return current[idx];
   }
   throw new Error('Item not found');
 }
@@ -90,17 +116,17 @@ export async function deleteItem(id: string): Promise<boolean> {
       method: 'DELETE'
     });
     const json = await res.json();
-    if (json.success) return true;
+    if (json.success) {
+      const current = getLocalCache();
+      setLocalCache(current.filter((i) => i.id !== id));
+      return true;
+    }
   } catch (err) {
     console.warn('[API] Backend unreachable, removing from local storage...', err);
   }
 
-  const cached = localStorage.getItem('everything_wishlist_items');
-  if (cached) {
-    const items: WishlistItem[] = JSON.parse(cached);
-    const filtered = items.filter((i) => i.id !== id);
-    localStorage.setItem('everything_wishlist_items', JSON.stringify(filtered));
-  }
+  const current = getLocalCache();
+  setLocalCache(current.filter((i) => i.id !== id));
   return true;
 }
 

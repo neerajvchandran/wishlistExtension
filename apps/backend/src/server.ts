@@ -1,11 +1,11 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import './config/env';
 
 import express from 'express';
 import cors from 'cors';
 import analyzeRouter from './routes/analyze';
 import itemsRouter from './routes/items';
 import categoriesRouter from './routes/categories';
+import whatsappRouter from './routes/whatsapp';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,6 +29,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api', analyzeRouter);
 app.use('/api/items', itemsRouter);
 app.use('/api/categories', categoriesRouter);
+app.use('/api/whatsapp', whatsappRouter);
 
 // Global Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -1,0 +1,134 @@
+{
+  "name": "Twilio WhatsApp to Supabase Wishlist",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        140,
+        -30
+      ],
+      "id": "1133815f-fb39-485c-a9c1-312995b6eac9",
+      "name": "Twilio WhatsApp Webhook",
+      "webhookId": "d0321965-67a8-4e9f-9b38-01d4be1f3785"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3001/api/whatsapp/query",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"={{ $json.body.Body }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        -30
+      ],
+      "id": "5020788c-e972-4b51-8157-dbeabb6f1e18",
+      "name": "Wishlist API (Supabase + AI)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Extract raw TwiML string from $json.data (or fallback fields)\nlet rawData = $json.data || $json.twiml_xml || $json.whatsapp_message || '';\nif (typeof rawData !== 'string') {\n  rawData = JSON.stringify(rawData);\n}\n\n// Extract text inside <Message>...</Message> element\nconst match = rawData.match(/<Message>([\\s\\S]*?)<\\/Message>/i);\nlet extracted = match ? match[1] : rawData;\n\n// Decode XML entities (&amp;, &lt;, &gt;, &quot;, &apos;)\nextracted = extracted\n  .replace(/&amp;/g, '&')\n  .replace(/&lt;/g, '<')\n  .replace(/&gt;/g, '>')\n  .replace(/&quot;/g, '\"')\n  .replace(/&apos;/g, \"'\")\n  .trim();\n\n// Return only the extracted message as requested\nreturn {\n  whatsapp_message: extracted\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        -30
+      ],
+      "id": "230593dc-6c38-4105-b1f4-ab635212d9a0",
+      "name": "Extract Message from TwiML"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "To",
+              "value": "={{ $('Twilio WhatsApp Webhook').item.json.body.From }}"
+            },
+            {
+              "name": "From",
+              "value": "whatsapp:+14155238886"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $json.whatsapp_message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        860,
+        -30
+      ],
+      "id": "c5c7b555-eb75-4c21-a42c-d3fff0a01545",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "0XYVMJuVzqAX6TmU",
+          "name": "Unnamed credential"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Twilio WhatsApp Webhook": {
+      "main": [
+        [
+          {
+            "node": "Wishlist API (Supabase + AI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wishlist API (Supabase + AI)": {
+      "main": [
+        [
+          {
+            "node": "Extract Message from TwiML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message from TwiML": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
